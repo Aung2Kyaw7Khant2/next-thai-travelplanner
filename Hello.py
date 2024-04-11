@@ -9,9 +9,14 @@ genai.configure(api_key="AIzaSyCKNwQ2p9XA71CfMZF5Pfuq2flFjnZoK4k")
 model = genai.GenerativeModel('gemini-pro')
 chat = model.start_chat(history=[])
 budget_min = 1000
-budget_max = 50000
-replyText = ""
-
+budget_max = 15000
+if 'replyText' not in st.session_state:
+    st.session_state['replyText'] = 'Your Thailand Trip Planner Powered by AI. Simplify your travels across Thailand with personalized itineraries crafted just for you. Discover the best of Thailand effortlessly with Next Thai.'
+ms = st.session_state
+if "themes" not in ms: 
+    ms.themes = {"current_theme": "dark",
+                    "refreshed": True,
+                    }
 
 def run():
     
@@ -20,9 +25,11 @@ def run():
     st.set_page_config(
         page_title="Next Thai",
         page_icon="👋",
+        layout="wide"
     )
-
+    st.image('images/Group 1.png', caption="")
     st.markdown("# Customize Your Journey Here!")
+    st.subheader("Your Dream Trip with Next Thai.")
     st.sidebar.header("Customize Your Journey Here!")
 
     today = datetime.datetime.now()
@@ -80,6 +87,7 @@ def run():
     difference = 1
     if len(duration) > 1:
         difference = duration[1].day-duration[0].day + 1
+
     people = st.sidebar.number_input('How Many People?', min_value = 1, max_value = 30, value = 1, step = 1)
 
     cost = st.sidebar.slider('Total Cost per Person', int(budget_min*difference), int(budget_max*difference), int(budget_min*difference) + 3500, 500)
@@ -119,25 +127,35 @@ def run():
     "Volunteer Travel Experience",
     "Wine Tasting Tour",
     "Yoga Retreat"
-])
+    ])
 
     additional_trip = st.sidebar.text_input('Additional Trip Type')
-
     if st.sidebar.button('Generate'):
-        prompt = "I want to make a detailed trip planner from " + str(start)+ ", Thailand, and I want to visit " + list_to_string(destinations) + " equally. The duration is: " + str(duration) + ". I want the cost for each person to be between " + str(budget_min)+ " and maximum of " + str(cost) + "in Thai Bhat, for a total of " + str(people) +" people. The trip type must include: " + list_to_string(trip_type) + additional_trip +"."
-        replyText = reply(prompt)
+        prompt = "I want to make a detailed trip planner from " + str(start)+ ", Thailand, and I want to visit " + list_to_string(destinations) + " equally. The duration is: " + str(duration) + ". I want the cost for each person to be between " + str(budget_min)+ " and maximum of " + str(cost) + "in Thai Bhat, for a total of " + str(people) +" people. The trip type must include: " + list_to_string(trip_type) + additional_trip +". Also please include the total amount of " + str(people) + " people in the end."
+        with st.spinner('GENERATING Travel Plan...'):
+            reply(prompt)
     else:
         pass
-
-    st.write(replyText)
+    st.write(st.session_state['replyText'])
 
 def reply(prompt):
-    global chat
-    respond = chat.send_message(prompt)
-    return respond.text
+    global chat, replyText
+    st.session_state['replyText'] = chat.send_message(prompt).text
+    return
 
 def list_to_string(lst, delimiter=', '):
     return delimiter.join(lst)
 
+def ChangeTheme():
+  previous_theme = ms.themes["current_theme"]
+  tdict = ms.themes["light"] if ms.themes["current_theme"] == "light" else ms.themes["dark"]
+  for vkey, vval in tdict.items(): 
+    if vkey.startswith("theme"): st._config.set_option(vkey, vval)
+
+  ms.themes["refreshed"] = False
+  if previous_theme == "dark": ms.themes["current_theme"] = "light"
+  elif previous_theme == "light": ms.themes["current_theme"] = "dark"
+
 if __name__ == "__main__":
+    print("TEST")
     run()
